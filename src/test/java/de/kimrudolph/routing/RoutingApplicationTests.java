@@ -5,9 +5,13 @@ import de.kimrudolph.routing.repositories.CustomerRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.CacheManager;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import javax.sql.DataSource;
+
+import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 
@@ -18,52 +22,45 @@ public class RoutingApplicationTests {
     @Autowired
     CustomerRepository customerRepository;
 
-    @Autowired
-    RoutingTestUtil routingTestUtil;
-
-    @Autowired
-    CacheManager cacheManager;
+//    @Autowired
+//    RoutingTestUtil routingTestUtil;
 
     @Test
     public void contextSwitchTest() throws Exception {
 
         // Create databases for each environment
-        for (DatabaseEnvironment databaseEnvironment : DatabaseEnvironment
-            .values()) {
-            routingTestUtil.createDatabase(databaseEnvironment);
-        }
+//        for (DatabaseEnvironment databaseEnvironment : DatabaseEnvironment
+//            .values()) {
+//            routingTestUtil.createDatabase(databaseEnvironment);
+//        }
 
         // Create a customer in each environment
+
+
+
         for (DatabaseEnvironment databaseEnvironment : DatabaseEnvironment
             .values()) {
-            DatabaseContextHolder.set(databaseEnvironment);
+            if(databaseEnvironment.equals(DatabaseEnvironment.D1)){
+                continue;
+            }
+            DatabaseContextThreadLocal.set(databaseEnvironment);
             Customer devCustomer = new Customer();
             devCustomer.setName("Tony Tester");
             customerRepository.save(devCustomer);
-            DatabaseContextHolder.clear();
+            DatabaseContextThreadLocal.clear();
         }
 
-        // Every customer entry is the first entry
-        for (DatabaseEnvironment databaseEnvironment : DatabaseEnvironment
-            .values()) {
-            DatabaseContextHolder.set(databaseEnvironment);
-            assertEquals(1L,
-                customerRepository.findOneByName("Tony Tester").getId()
-                    .longValue());
-            DatabaseContextHolder.clear();
-        }
-
-        // Check if caches are filled for each environment
-        for (DatabaseEnvironment databaseEnvironment : DatabaseEnvironment
-            .values()) {
-            DatabaseContextHolder.set(databaseEnvironment);
-            assertEquals("Tony Tester",
-                ((Customer) cacheManager.getCache("customers")
-                    .get(databaseEnvironment + "-findOneByName-Tony Tester")
-                    .get()).getName());
-            DatabaseContextHolder.clear();
-        }
-
+        DataSource dataSource = DataSourceBuilder.create(DataSourceConfiguration.class.getClassLoader()).driverClassName("com.mysql.jdbc.Driver").password("123456").username("root").url("jdbc:mysql://127.0.0.1:3306/suda-auth?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT").build();
+        HashMap<Object, Object> dataSourceMap = DataSourceConfiguration.getDataSourceMap();
+        System.out.println(dataSourceMap.size());
+        dataSourceMap.put(DatabaseEnvironment.D1,dataSource);
+        DataSourceConfiguration.getRouter().setTargetDataSources(dataSourceMap);
+        DataSourceConfiguration.getRouter().afterPropertiesSet();
+        DatabaseContextThreadLocal.set(DatabaseEnvironment.D1);
+        Customer devCustomer = new Customer();
+        devCustomer.setName("Tony Tester");
+        customerRepository.save(devCustomer);
+        DatabaseContextThreadLocal.clear();
     }
 
 }

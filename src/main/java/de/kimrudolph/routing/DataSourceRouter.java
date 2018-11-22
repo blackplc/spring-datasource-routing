@@ -9,6 +9,6 @@ public class DataSourceRouter extends AbstractRoutingDataSource {
 
     @Override
     protected Object determineCurrentLookupKey() {
-        return DatabaseContextHolder.getEnvironment();
+        return DatabaseContextThreadLocal.getEnvironment();
     }
 }

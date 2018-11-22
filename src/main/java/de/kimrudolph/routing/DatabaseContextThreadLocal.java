@@ -4,7 +4,7 @@ package de.kimrudolph.routing;
  * Thread shared context to point to the datasource which should be used. This
  * enables context switches between different environments.
  */
-public class DatabaseContextHolder {
+public class DatabaseContextThreadLocal {
 
     private static final ThreadLocal<DatabaseEnvironment> CONTEXT =
         new ThreadLocal<>();
